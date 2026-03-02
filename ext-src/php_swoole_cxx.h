@@ -164,6 +164,25 @@ static inline bool php_swoole_is_fatal_error() {
 
 ssize_t php_swoole_length_func(const swoole::Protocol *, NetSocket *, swoole::PacketLength *);
 SW_API zend_long php_swoole_parse_to_size(zval *zv);
+#ifdef HAVE_IGBINARY
+/* Forward-declare only the igbinary API functions we use.
+ * We cannot #include "igbinary.h" directly because igbinary 3.2.x ships
+ * src/php7/igbinary.h which contains `struct zval;` — a C++ error on
+ * PHP 8.5 where zval is already a typedef for struct _zval_struct. */
+#if defined(__GNUC__) && __GNUC__ >= 4
+#  define SW_IGBINARY_API __attribute__((visibility("default")))
+#else
+#  define SW_IGBINARY_API
+#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
+SW_IGBINARY_API int igbinary_serialize(uint8_t **ret, size_t *ret_len, zval *z);
+SW_IGBINARY_API int igbinary_unserialize(const uint8_t *buf, size_t buf_len, zval *z);
+#ifdef __cplusplus
+}
+#endif
+#endif
 SW_API zend_string *php_swoole_serialize(zval *zdata);
 SW_API bool php_swoole_unserialize(const zend_string *data, zval *zv);
 

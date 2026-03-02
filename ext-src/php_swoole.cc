@@ -521,6 +521,19 @@ SW_API zend_long php_swoole_parse_to_size(zval *zv) {
 }
 
 SW_API zend_string *php_swoole_serialize(zval *zdata) {
+#ifdef HAVE_IGBINARY
+    uint8_t *buf = nullptr;
+    size_t buf_len = 0;
+    if (igbinary_serialize(&buf, &buf_len, zdata) != 0 || EG(exception)) {
+        if (buf) {
+            efree(buf);
+        }
+        return nullptr;
+    }
+    zend_string *result = zend_string_init((char *) buf, buf_len, true);
+    efree(buf);
+    return result;
+#else
     php_serialize_data_t var_hash;
     smart_str serialized_data = {};
 
@@ -534,9 +547,17 @@ SW_API zend_string *php_swoole_serialize(zval *zdata) {
     }
     smart_str_free(&serialized_data);
     return result;
+#endif
 }
 
 SW_API bool php_swoole_unserialize(const zend_string *data, zval *zv) {
+#ifdef HAVE_IGBINARY
+    if (igbinary_unserialize((const uint8_t *) ZSTR_VAL(data), ZSTR_LEN(data), zv) != 0) {
+        swoole_warning("igbinary unserialize() failed");
+        return false;
+    }
+    return true;
+#else
     php_unserialize_data_t var_hash;
     const char *p = ZSTR_VAL(data);
     size_t l = ZSTR_LEN(data);
@@ -550,6 +571,7 @@ SW_API bool php_swoole_unserialize(const zend_string *data, zval *zv) {
                        l);
     }
     return unserialized;
+#endif
 }
 
 static void fatal_error(int code, const char *format, ...) {
