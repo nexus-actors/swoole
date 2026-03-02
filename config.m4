@@ -138,6 +138,12 @@ PHP_ARG_ENABLE([swoole-thread],
   [AS_HELP_STRING([--enable-swoole-thread],
     [Enable swoole thread support])], [no], [no])
 
+PHP_ARG_WITH([igbinary],
+  [whether to use igbinary serialization for Thread\Queue],
+  [AS_HELP_STRING([--with-igbinary],
+    [Use igbinary for Thread\Queue serialization (faster IPC)])],
+  [no], [no])
+
 PHP_ARG_ENABLE([swoole-stdext],
   [whether to enable swoole stdext support],
   [AS_HELP_STRING([--enable-swoole-stdext],
@@ -1140,6 +1146,18 @@ EOF
 
     if test "$PHP_SWOOLE_THREAD" != "no"; then
         AC_DEFINE(SW_THREAD, 1, [enable swoole thread support])
+
+        if test "$PHP_IGBINARY" != "no"; then
+            AC_MSG_CHECKING([for igbinary header])
+            if test -f "$phpincludedir/ext/igbinary/igbinary.h"; then
+                PHP_ADD_INCLUDE($phpincludedir/ext/igbinary)
+                AC_DEFINE(HAVE_IGBINARY, 1, [igbinary serialization available])
+                PHP_ADD_EXTENSION_DEP(swoole, igbinary, true)
+                AC_MSG_RESULT([yes])
+            else
+                AC_MSG_ERROR([igbinary header not found at $phpincludedir/ext/igbinary/igbinary.h. Ensure igbinary is installed.])
+            fi
+        fi
     fi
 
     if test "$PHP_SWOOLE_STDEXT" != "no"; then
